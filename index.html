@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="de" class="h-full select-none">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Konnektor-Detektiv: Die Akte Grammatik (App)</title>
+    
+    <!-- PWA & Mobile Web App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="KonnektorDetektiv">
+    <meta name="theme-color" content="#070a10">
+    <meta name="application-name" content="Konnektor-Detektiv">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        typewriter: ['"Special Elite"', 'monospace'],
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        detective: {
+                            950: '#070A10',
+                            900: '#0F172A',
+                            850: '#152033',
+                            800: '#1E293B',
+                            700: '#334155',
+                            accent: '#F59E0B',
+                            amberDark: '#D97706',
+                            paper: '#FAF6EE',
+                            crimson: '#991B1B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Mobile Dynamic Viewport Fixes */
+        html, body {
+            height: 100%;
+            height: 100dvh;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+
+        .paper-texture {
+            background-color: #faf6ee;
+            background-image: radial-gradient(#e2d9c8 0.8px, transparent 0.8px);
+            background-size: 10px 10px;
+        }
+
+        /* Active touch visual feedback */
+        .touch-active {
+            transition: transform 0.1s ease, opacity 0.1s ease;
+        }
+        .touch-active:active {
+            transform: scale(0.96);
+            opacity: 0.9;
+        }
+
+        /* Bottom Sheet Transition */
+        .drawer-slide {
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-detective-950 text-slate-100 font-sans flex flex-col justify-between antialiased selection:bg-amber-500 selection:text-slate-950 pb-20 md:pb-0">
+
+    <!-- APP TOP HEADER BAR (FIXED) -->
+    <header class="bg-detective-900/95 backdrop-blur-md border-b border-slate-800/80 sticky top-0 z-30 px-3 sm:px-5 py-2.5 pt-3 pt-safe shadow-lg">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            
+            <!-- App Identity -->
+            <div class="flex items-center space-x-2.5 cursor-pointer" onclick="showScreen('levelMapScreen')">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500/30 to-amber-700/10 border border-amber-500/50 flex items-center justify-center text-amber-400 shadow-inner shrink-0">
+                    <i class="fa-solid fa-user-secret text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-typewriter text-sm sm:text-base font-bold tracking-wider text-amber-400 leading-none">KONNEKTOR</h1>
+                    <span id="rankBadgeHeader" class="text-[10px] text-slate-400 font-semibold uppercase tracking-tight">Praktikant</span>
+                </div>
+            </div>
+
+            <!-- Header Quick Controls -->
+            <div class="flex items-center space-x-1.5 sm:space-x-2">
+                <!-- XP Counter Pill -->
+                <div class="bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 flex items-center space-x-1">
+                    <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
+                    <span id="headerXpDisplay" class="font-typewriter text-xs font-bold text-amber-300">0 XP</span>
+                </div>
+
+                <!-- Quick Sound Toggle -->
+                <button id="soundToggleBtn" onclick="toggleSound()" class="w-9 h-9 rounded-lg bg-slate-800 active:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center touch-active" title="Ton umschalten">
+                    <i id="soundIcon" class="fa-solid fa-volume-high text-amber-400 text-xs"></i>
+                </button>
+
+                <!-- Quick Notebook Button -->
+                <button onclick="toggleDrawer(true)" class="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 active:bg-amber-500/30 flex items-center justify-center touch-active" title="Spickzettel">
+                    <i class="fa-solid fa-book-bookmark text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN APP VIEW CONTAINERS -->
+    <main class="max-w-4xl w-full mx-auto p-3 sm:p-5 flex-grow flex flex-col justify-center">
+
+        <!-- SCREEN 1: LEVEL MAP / HUB -->
+        <div id="levelMapScreen" class="space-y-4 sm:space-y-6">
+            
+            <!-- Hero Mobile Banner -->
+            <div class="bg-gradient-to-br from-detective-900 to-detective-850 rounded-2xl border border-slate-800 p-4 sm:p-6 shadow-xl relative overflow-hidden">
+                <div class="max-w-xl space-y-1.5">
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+                            Deutsch A2-B1
+                        </span>
+                        <span class="text-xs text-slate-400">&bull; 50 Ermittlungsfälle</span>
+                    </div>
+                    <h2 class="font-typewriter text-xl sm:text-2xl font-bold text-slate-100">
+                        Ermittlungsakten
+                    </h2>
+                    <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                        Wähle ein Level aus. Alle 5 Akten sind direkt freigeschaltet!
+                    </p>
+                </div>
+
+                <!-- Stats Summary -->
+                <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-800/80">
+                    <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800/80 text-center">
+                        <div class="text-[9px] uppercase font-bold text-slate-400">Gefundene Fälle</div>
+                        <div id="solvedCasesDisplay" class="text-xs sm:text-sm font-bold text-emerald-400 font-typewriter">0 / 50</div>
+                    </div>
+                    <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800/80 text-center">
+                        <div class="text-[9px] uppercase font-bold text-slate-400">Dienstgrad</div>
+                        <div id="currentRankDisplay" class="text-[11px] font-bold text-amber-300 truncate">Praktikant</div>
+                    </div>
+                    <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800/80 text-center">
+                        <div class="text-[9px] uppercase font-bold text-slate-400">Sterne</div>
+                        <div id="totalStarsDisplay" class="text-xs sm:text-sm font-bold text-amber-400 font-typewriter">0 / 15 <i class="fa-solid fa-star text-[10px]"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEVEL GRID (5 UNLOCKED LEVELS) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="levelGrid">
+                <!-- Level cards rendered dynamically -->
+            </div>
+
+            <!-- BADGES SECTION -->
+            <div class="bg-detective-900 rounded-2xl border border-slate-800 p-4 shadow-lg space-y-2.5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center space-x-2">
+                    <i class="fa-solid fa-award text-amber-400"></i>
+                    <span>Ermittler-Abzeichen</span>
+                </h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="badgesContainer">
+                    <!-- Badges injected dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 2: GAMEPLAY CASE DOSSIER -->
+        <div id="gameScreen" class="hidden space-y-3 sm:space-y-4">
+
+            <!-- GAMEPLAY HEADER BAR -->
+            <div class="bg-detective-900 rounded-xl p-2.5 sm:p-3 border border-slate-800 flex justify-between items-center gap-2 shadow-md">
+                <div class="flex items-center space-x-2">
+                    <button onclick="showScreen('levelMapScreen')" class="w-8 h-8 rounded-lg bg-slate-800 active:bg-slate-700 text-slate-300 text-xs font-bold flex items-center justify-center touch-active" title="Zurück">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <div id="gameLevelTitle" class="text-xs font-bold text-amber-400 font-typewriter">LEVEL 1</div>
+                        <div id="gameLevelSubtitle" class="text-[10px] text-slate-400 truncate max-w-[130px] sm:max-w-xs">Grundlegende Konnektoren</div>
+                    </div>
+                </div>
+
+                <!-- Streak Counter Pill -->
+                <div id="streakBadge" class="hidden items-center space-x-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 px-2.5 py-0.5 rounded-full text-xs font-bold">
+                    <i class="fa-solid fa-fire text-amber-500"></i>
+                    <span id="streakCount">0</span>x
+                </div>
+
+                <!-- Progress Counter -->
+                <div class="text-right">
+                    <div class="text-[10px] text-slate-400 font-semibold" id="progressText">Fall 1 / 10</div>
+                    <div class="w-20 sm:w-28 bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800 mt-0.5">
+                        <div id="progressBar" class="bg-amber-500 h-1.5 transition-all duration-300" style="width: 10%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CASE FILE DOSSIER CARD -->
+            <div class="bg-[#faf6ee] text-slate-900 rounded-2xl shadow-2xl overflow-hidden border-2 border-amber-900/30 relative">
+                
+                <!-- Dossier Top Bar -->
+                <div class="bg-amber-900/10 border-b border-amber-900/20 px-4 py-2.5 flex justify-between items-center font-typewriter text-xs">
+                    <div class="flex items-center space-x-1.5 text-amber-950 font-bold tracking-wider">
+                        <i class="fa-solid fa-folder-open text-amber-800"></i>
+                        <span id="caseIdText">AKTE #L1-01</span>
+                    </div>
+
+                    <!-- Category Clue Badge -->
+                    <div id="categoryBadge" class="bg-amber-800/15 border border-amber-800/40 text-amber-950 px-2 py-0.5 rounded text-[11px] font-sans font-bold uppercase tracking-wider">
+                        [Grund]
+                    </div>
+                </div>
+
+                <!-- Dossier Content Body -->
+                <div class="p-4 sm:p-6 space-y-3.5 paper-texture">
+                    
+                    <!-- Situation Clue Card -->
+                    <div class="bg-amber-100/90 border-l-4 border-amber-700 p-3 rounded-r-lg shadow-sm text-xs sm:text-sm">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-amber-900 mb-0.5 flex items-center space-x-1">
+                            <i class="fa-solid fa-microscope text-amber-700"></i>
+                            <span>Aussage / Kontext:</span>
+                        </div>
+                        <p id="caseSituation" class="text-slate-800 italic leading-snug">
+                            Der Verdächtige begründet sein Fehlen.
+                        </p>
+                    </div>
+
+                    <!-- Sentence Blank Container -->
+                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-300 shadow-inner">
+                        <div class="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center space-x-1">
+                            <i class="fa-solid fa-quote-left"></i>
+                            <span>Protokoll:</span>
+                        </div>
+                        <div id="sentencePrompt" class="text-base sm:text-lg font-medium text-slate-900 leading-relaxed">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Options Grid (4 Touch Targets) -->
+                    <div id="optionsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                        <!-- Injected by JS -->
+                    </div>
+
+                    <!-- Detailed Feedback Card -->
+                    <div id="feedbackBox" class="hidden p-3.5 rounded-xl border transition-all duration-300 text-xs sm:text-sm">
+                        <div class="flex items-start space-x-2.5">
+                            <div id="feedbackIcon" class="text-xl shrink-0 pt-0.5"></div>
+                            <div class="space-y-1">
+                                <h4 id="feedbackTitle" class="font-bold"></h4>
+                                <p id="feedbackText" class="leading-relaxed opacity-95"></p>
+                                <p id="verbRuleNote" class="italic font-medium pt-1 opacity-90 border-t border-current/20 mt-1.5 text-[11px]"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Dossier Footer Controls -->
+                <div class="bg-slate-100 border-t border-amber-900/10 px-4 py-3 flex justify-between items-center">
+                    <button onclick="toggleDrawer(true)" class="text-xs text-amber-900 hover:text-amber-700 font-bold flex items-center space-x-1.5 touch-active">
+                        <i class="fa-solid fa-book-open-reader text-amber-700"></i>
+                        <span>Spickzettel</span>
+                    </button>
+
+                    <button id="nextBtn" onclick="nextQuestion()" class="hidden px-4 py-2 bg-amber-600 active:bg-amber-500 text-slate-950 font-extrabold rounded-lg shadow-md touch-active flex items-center space-x-1.5 text-xs sm:text-sm">
+                        <span>Weiter</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- SCREEN 3: LEVEL SUMMARY -->
+        <div id="levelSummaryScreen" class="hidden bg-detective-900 rounded-2xl border border-slate-800 p-5 sm:p-8 shadow-2xl text-center space-y-4">
+            <div id="summaryBadgeIcon" class="inline-block p-4 rounded-full bg-amber-500/20 border border-amber-400 text-amber-400 shadow-lg">
+                <i class="fa-solid fa-award text-5xl"></i>
+            </div>
+
+            <div class="space-y-1">
+                <h2 id="summaryTitle" class="font-typewriter text-xl sm:text-3xl text-amber-400 font-bold">AKTE ABGESCHLOSSEN!</h2>
+                <p id="summarySubtitle" class="text-slate-300 text-xs sm:text-sm">10 Fälle dieser Akte bearbeitet.</p>
+            </div>
+
+            <!-- Stars Rating Display -->
+            <div class="flex justify-center items-center space-x-2 text-2xl sm:text-3xl text-amber-400" id="summaryStarsContainer">
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+            </div>
+
+            <!-- Summary Metrics Table -->
+            <div class="grid grid-cols-3 gap-2 max-w-sm mx-auto bg-slate-950 p-3 rounded-xl border border-slate-800 text-center">
+                <div>
+                    <div class="text-[9px] text-slate-400 uppercase font-bold">Richtig</div>
+                    <div id="summaryCorrectText" class="text-sm sm:text-base font-bold text-emerald-400 font-typewriter">8 / 10</div>
+                </div>
+                <div>
+                    <div class="text-[9px] text-slate-400 uppercase font-bold">Punkte</div>
+                    <div id="summaryXpText" class="text-sm sm:text-base font-bold text-amber-400 font-typewriter">+850 XP</div>
+                </div>
+                <div>
+                    <div class="text-[9px] text-slate-400 uppercase font-bold">Genauigkeit</div>
+                    <div id="summaryAccuracyText" class="text-sm sm:text-base font-bold text-slate-200 font-typewriter">80%</div>
+                </div>
+            </div>
+
+            <!-- Summary Actions -->
+            <div class="pt-2 flex flex-col sm:flex-row justify-center gap-2">
+                <button onclick="showScreen('levelMapScreen')" class="px-5 py-3 bg-slate-800 active:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700 shadow touch-active text-xs sm:text-sm">
+                    <i class="fa-solid fa-map mr-1.5"></i> Levelkarte
+                </button>
+                <button id="summaryNextLevelBtn" onclick="startNextLevel()" class="px-5 py-3 bg-amber-600 active:bg-amber-500 text-slate-950 font-extrabold rounded-xl shadow-lg touch-active text-xs sm:text-sm">
+                    <span>Nächstes Level</span>
+                    <i class="fa-solid fa-arrow-right ml-1.5"></i>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- STICKY MOBILE BOTTOM NAVIGATION BAR -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-detective-900/95 backdrop-blur-md border-t border-slate-800 z-30 pb-safe md:hidden">
+        <div class="flex justify-around items-center h-14">
+            <button onclick="showScreen('levelMapScreen')" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-amber-400 active:text-amber-400 touch-active">
+                <i class="fa-solid fa-map-location-dot text-base"></i>
+                <span class="text-[10px] font-semibold mt-0.5">Karte</span>
+            </button>
+            <button onclick="startLevel(currentLevelIdx)" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-amber-400 active:text-amber-400 touch-active">
+                <i class="fa-solid fa-folder-open text-base"></i>
+                <span class="text-[10px] font-semibold mt-0.5">Akte</span>
+            </button>
+            <button onclick="toggleDrawer(true)" class="flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-amber-400 active:text-amber-400 touch-active">
+                <i class="fa-solid fa-book-bookmark text-base"></i>
+                <span class="text-[10px] font-semibold mt-0.5">Spickzettel</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MOBILE BOTTOM DRAWER / SPICKZETTEL SHEET -->
+    <div id="drawerBackdrop" onclick="toggleDrawer(false)" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"></div>
+    
+    <div id="spickzettelDrawer" class="fixed bottom-0 left-0 right-0 bg-detective-900 border-t border-slate-700 rounded-t-3xl z-50 transform translate-y-full drawer-slide max-h-[85vh] flex flex-col shadow-2xl">
+        
+        <!-- Drawer Handle & Header -->
+        <div class="p-3 pb-2 border-b border-slate-800 bg-slate-950/80 rounded-t-3xl flex flex-col items-center">
+            <div class="w-12 h-1.5 bg-slate-700 rounded-full mb-2"></div>
+            <div class="w-full flex justify-between items-center px-2">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-book-bookmark text-amber-400 text-lg"></i>
+                    <h3 class="font-typewriter text-base text-amber-400 font-bold">Grammatik-Spickzettel</h3>
+                </div>
+                <button onclick="toggleDrawer(false)" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-sm active:bg-slate-700">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Search Bar inside Drawer -->
+        <div class="p-3 bg-slate-950/60 border-b border-slate-800/80">
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+                <input type="text" id="spickzettelSearch" onkeyup="filterSpickzettel()" placeholder="Konnektor suchen (z.B. weil, als, ob, trotz)..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500">
+            </div>
+        </div>
+
+        <!-- Scrollable Content List -->
+        <div class="p-4 overflow-y-auto space-y-3 text-xs leading-relaxed flex-grow" id="spickzettelList">
+            
+            <div class="rule-card bg-slate-950 p-3 rounded-xl border border-slate-800" data-keywords="weil da grund kausal">
+                <div class="font-bold text-amber-400 flex justify-between"><span>weil / da</span> <span class="text-[10px] text-amber-500/80 font-normal">[Grund / Kausal]</span></div>
+                <p class="text-slate-300 mt-0.5">Erklärt den Grund. <strong>da</strong> ist formeller und steht meist am Satzanfang.</p>
+                <p class="text-slate-400 italic mt-1 bg-slate-900/60 p-1.5 rounded">Beispiel: Er blieb zu Hause, <strong>weil</strong> er krank war. / <strong>Da</strong> es regnete, stornierten wir.</p>
+            </div>
+
+            <div class="rule-card bg-slate-950 p-3 rounded-xl border border-slate-800" data-keywords="dass inhalt aussage">
+                <div class="font-bold text-amber-400 flex justify-between"><span>dass</span> <span class="text-[10px] text-amber-500/80 font-normal">[Inhalt / Aussage]</span></div>
+                <p class="text-slate-300 mt-0.5">Wiedergabe von Informationen nach Verben wie wissen, glauben, sagen.</p>
+                <p class="text-slate-400 italic mt-1 bg-slate-900/60 p-1.5 rounded">Beispiel: Der Zeuge bestätigte, <strong>dass</strong> er am Tatort war.</p>
+            </div>
+
+            <div class="rule-card bg-slate-950 p-3 rounded-xl border border-slate-800" data-keywords="wenn als vergangenheit zeit temporal">
+                <div class="font-bold text-amber-400 flex justify-between"><span>wenn vs. als</span> <span class="text-[10px] text-amber-500/80 font-normal">[Zeit / Temporal]</span></div>
+                <p class="text-slate-300 mt-0.5"><strong>als</strong> = einmalig in der Vergangenheit.<br><strong>wenn</strong> = Gegenwart/Zukunft oder wiederholt.</p>
+                <p class="text-slate-400 italic mt-1 bg-slate-900/60 p-1.5 rounded">Beispiel: <strong>Als</strong> ich ein Kind war... / Immer <strong>wenn</strong> der Zug verspätet ist...</p>
+            </div>
+
+            <div class="rule-card bg-slate-950 p-3 rounded-xl border border-slate-800" data-keywords="obwohl gegensatz konzessiv">
+                <div class="font-bold text-amber-400 flex justify-between"><span>obwohl</span> <span class="text-[10px] text-amber-500/80 font-normal">[Gegensatz / Unerwartet]</span></div>
+                <p class="text-slate-300 mt-0.5">Drückt einen unlogischen oder unerwarteten Gegengrund aus.</p>
+                <p class="text-slate-400 italic mt-1 bg-slate-900/60 p-1.5 rounded">Beispiel: Er rannte weiter, <strong>obwohl</strong> das Bein schmerzte.</p>
+            </div>
+
+            <div class="rule-card bg-slate-950 p-3 rounded-xl border border-slate-800" data-keywords="damit sodass ziel absicht folge konsequenz">
+                <div class="font-bold text-amber-400 flex justify-between"><span>damit vs. sodass</span> <span class="text-[10px] text-amber-500/80 font-normal">[Ziel / Folge]</span></div>
+                <p class="text-slate-300 mt-0.5"><strong>damit</strong> = Absicht/Ziel.<br><strong>sodass</strong> = Resultat/Konsequenz.</p>
+                <p class="text-slate-400 italic mt-1 bg-slate-900/60 p-1.5 rounded">Beispiel: Er schloss ab, <strong>damit</strong> niemand einbricht.</p>
+            </div>
+
+            <div class="rule-card bg-slate-950 p-3 rounded-xl border border-slate-800" data-keywords="nachdem bevor vorzeitigkeit nachzeitigkeit">
+                <div class="font-bold text-amber-400 flex justify-between"><span>nachdem / bevor</span> <span class="text-[10px] text-amber-500/80 font-normal">[Zeitreihenfolge]</span></div>
+                <p class="text-slate-300 mt-0.5"><strong>nachdem</strong> = Nebensatz passierte zuerst.<br><strong>bevor</strong> = Hauptsatz passierte zuerst.</p>
+            </div>
+
+            <div class="rule-card bg-slate-950 p-3 rounded-xl border border-slate-800" data-keywords="während bis seit seitdem gleichzeitigkeit dauer">
+                <div class="font-bold text-amber-400 flex justify-between"><span>während / bis / seitdem</span> <span class="text-[10px] text-amber-500/80 font-normal">[Zeitdauer / Grenze]</span></div>
+                <p class="text-slate-300 mt-0.5"><strong>während</strong> = gleichzeitig. <strong>bis</strong> = Endpunkt. <strong>seitdem</strong> = Startpunkt.</p>
+            </div>
+
+            <div class="rule-card bg-slate-950 p-3 rounded-xl border border-slate-800" data-keywords="falls sofern bedingung konditional">
+                <div class="font-bold text-amber-400 flex justify-between"><span>falls / sofern</span> <span class="text-[10px] text-amber-500/80 font-normal">[Bedingung / Eventualfall]</span></div>
+                <p class="text-slate-300 mt-0.5">Drückt eine Bedingung aus für unsichere Ereignisse.</p>
+            </div>
+
+            <div class="rule-card bg-slate-950 p-3 rounded-xl border border-slate-800" data-keywords="zumal es sei denn grund ausnahme">
+                <div class="font-bold text-amber-400 flex justify-between"><span>zumal / es sei denn dass</span> <span class="text-[10px] text-amber-500/80 font-normal">[Spezial]</span></div>
+                <p class="text-slate-300 mt-0.5"><strong>zumal</strong> = besonders weil.<br><strong>es sei denn, dass</strong> = einzige Ausnahme.</p>
+            </div>
+
+            <div class="rule-card bg-slate-950 p-3 rounded-xl border border-slate-800" data-keywords="wer was wo wann wie warum welcher w-fragen indirekt">
+                <div class="font-bold text-amber-400 flex justify-between"><span>Indirekte W-Fragen</span> <span class="text-[10px] text-amber-500/80 font-normal">[Frage-Nebensatz]</span></div>
+                <p class="text-slate-300 mt-0.5">wer, was, wo, wann, wie, warum, welcher leiten Nebensätze ein. Das Verb steht am Satzende.</p>
+            </div>
+
+            <div class="rule-card bg-slate-950 p-3 rounded-xl border border-slate-800" data-keywords="relativpronomen der die das dem den wo wohin woher">
+                <div class="font-bold text-amber-400 flex justify-between"><span>Relativpronomen / -adverbien</span> <span class="text-[10px] text-amber-500/80 font-normal">[Nomen-Bezug]</span></div>
+                <p class="text-slate-300 mt-0.5">der, die, das, den, dem, welcher... sowie Orte mit wo, wohin, woher. Das Verb rückt ans Ende.</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGIC & DATABASE -->
+    <script>
+        // MOBILE HAPTIC FEEDBACK SIMULATION
+        function triggerHaptic(type = 'light') {
+            if ('vibrate' in navigator) {
+                if (type === 'light') navigator.vibrate(12);
+                else if (type === 'success') navigator.vibrate([15, 30, 20]);
+                else if (type === 'error') navigator.vibrate([40, 40, 40]);
+            }
+        }
+
+        // WEB AUDIO SYNTHESIZER
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtx = new AudioContext();
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'success') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.08); // E5
+                osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.16); // G5
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+                osc.start(now);
+                osc.stop(now + 0.28);
+            } else if (type === 'error') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.linearRampToValueAtTime(130, now + 0.2);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                osc.start(now);
+                osc.stop(now + 0.22);
+            } else if (type === 'badge') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(554.37, now + 0.08);
+                osc.frequency.setValueAtTime(659.25, now + 0.16);
+                osc.frequency.setValueAtTime(880, now + 0.24);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            icon.className = soundEnabled ? 'fa-solid fa-volume-high text-amber-400 text-xs' : 'fa-solid fa-volume-xmark text-slate-500 text-xs';
+            triggerHaptic('light');
+        }
+
+        // FULL 50 CASES DATABASE (5 LEVELS)
+        const levelsData = [
+            {
+                levelNum: 1,
+                title: "Level 1: Grundlagen",
+                subtitle: "weil, da, dass, wenn, als, ob, obwohl, damit, sodass, indem",
+                questions: [
+                    { id: "L1-01", category: "Grund", situation: "Der Verdächtige erklärt die Ursache für sein Fehlen.", beforeBlank: "Der Verdächtige erschien nicht im Büro,", afterBlank: "er nach eigenen Angaben krank war.", correct: "weil", options: ["weil", "obwohl", "damit", "sodass"], explanation: "'weil' nennt den direkten Grund.", verbNote: "Das Verb 'war' steht am Satzende." },
+                    { id: "L1-02", category: "Formeller Grund", situation: "Polizeibericht mit Bekanntem Sachverhalt.", beforeBlank: "", afterBlank: "der Täter keine Dokumente bei sich hatte, wurde er festgenommen.", correct: "Da", options: ["Da", "Damit", "Obwohl", "Dass"], explanation: "'Da' leitet den Grund am Satzanfang ein.", verbNote: "Verb 'hatte' am Ende des Nebensatzes." },
+                    { id: "L1-03", category: "Inhalt / Aussage", situation: "Ein Zeuge gibt eine Information zu Protokoll.", beforeBlank: "Der Zeuge wusste genau,", afterBlank: "der Verdächtige um 22 Uhr das Haus verließ.", correct: "dass", options: ["dass", "damit", "ob", "weil"], explanation: "'dass' gibt den Inhalt des Wissens wieder.", verbNote: "Verb 'verließ' rückt ans Nebensatzende." },
+                    { id: "L1-04", category: "Bedingung / Wiederholung", situation: "Regelmäßige Verhaltensweise des Verdächtigen.", beforeBlank: "Immer", afterBlank: "der Verdächtige lügt, wird er nervös.", correct: "wenn", options: ["wenn", "als", "dass", "obwohl"], explanation: "'wenn' beschreibt sich wiederholende Handlungen.", verbNote: "Verb 'lügt' am Ende des Nebensatzes." },
+                    { id: "L1-05", category: "Einmalige Vergangenheit", situation: "Konkretes Ereignis in der Vergangenheit.", beforeBlank: "Der Bankräuber verlor seine Maske,", afterBlank: "er aus dem Fenster sprang.", correct: "als", options: ["als", "wenn", "nachdem", "ob"], explanation: "'als' wird für einmalige Vergangenheitsereignisse genutzt.", verbNote: "Verb 'sprang' am Nebensatzende." },
+                    { id: "L1-06", category: "Indirekte Frage", situation: "Unklare Tatsache im Verhör.", beforeBlank: "Die Ermittlerin fragte den Zeugen,", afterBlank: "er die rote Jacke gesehen habe.", correct: "ob", options: ["ob", "dass", "weil", "wie"], explanation: "'ob' leitet indirekte Ja/Nein-Fragen ein.", verbNote: "Verb 'habe' am Satzende." },
+                    { id: "L1-07", category: "Gegensatz", situation: "Unerwarteter Gegengrund.", beforeBlank: "Er bestreitet den Einbruch,", afterBlank: "seine Fingerabdrücke am Safe gefunden wurden.", correct: "obwohl", options: ["obwohl", "weil", "sodass", "damit"], explanation: "'obwohl' zeigt einen Gegengrund auf.", verbNote: "Passivform 'gefunden wurden' ganz hinten." },
+                    { id: "L1-08", category: "Ziel / Absicht", situation: "Gezielte Absicht der Beamtinnen.", beforeBlank: "Die Beamtinnen umstellten das Gebäude,", afterBlank: "der Täter nicht flüchten konnte.", correct: "damit", options: ["damit", "sodass", "weil", "obwohl"], explanation: "'damit' drückt das gewollte Ziel aus.", verbNote: "Modalverb 'konnte' rückt ans Ende." },
+                    { id: "L1-09", category: "Folge / Ergebnis", situation: "Konsequenz einer Unachtsamkeit.", beforeBlank: "Der Einbrecher hinterließ Fußspuren,", afterBlank: "die Spurensicherung ihn rasch identifizieren konnte.", correct: "sodass", options: ["sodass", "damit", "indem", "falls"], explanation: "'sodass' leitet die unmittelbare Folge ein.", verbNote: "Verb 'konnte' am Satzende." },
+                    { id: "L1-10", category: "Mittel / Art und Weise", situation: "Die Methode des Aufbrechens.", beforeBlank: "Er öffnete das Tresorschloss,", afterBlank: "er einen speziellen Code eingab.", correct: "indem", options: ["indem", "obwohl", "weil", "dass"], explanation: "'indem' beantwortet die Frage 'Wie/Wodurch?'.", verbNote: "Verb 'eingab' rückt an die letzte Stelle." }
+                ]
+            },
+            {
+                levelNum: 2,
+                title: "Level 2: Zeit & Dauer",
+                subtitle: "nachdem, bevor, während, bis, seitdem, sobald, solange, falls, sofern",
+                questions: [
+                    { id: "L2-01", category: "Vorzeitigkeit", situation: "Reihenfolge von Spurensicherung und Abreise.", beforeBlank: "", afterBlank: "der Detektiv alle Beweise gesammelt hatte, verließ er den Raum.", correct: "Nachdem", options: ["Nachdem", "Bevor", "Während", "Bis"], explanation: "'Nachdem' drückt aus, dass der Nebensatz zuerst passierte.", verbNote: "Plusquamperfekt 'gesammelt hatte' am Ende." },
+                    { id: "L2-02", category: "Nachzeitigkeit", situation: "Täter wischte Spuren vor Flucht ab.", beforeBlank: "Der Täter reinigte das Lenkrad,", afterBlank: "er das Fahrzeug verließ.", correct: "bevor", options: ["bevor", "nachdem", "seitdem", "sobald"], explanation: "'bevor' zeigt, dass die Hauptsatzhandlung zuerst geschah.", verbNote: "Verb 'verließ' am Ende." },
+                    { id: "L2-03", category: "Gleichzeitigkeit", situation: "Zwei zeitgleiche Handlungen.", beforeBlank: "", afterBlank: "der Kommissar den Zeugen befragte, schrieb der Kollege mit.", correct: "Während", options: ["Während", "Bis", "Seitdem", "Sobald"], explanation: "'Während' beschreibt zwei gleichzeitig ablaufende Handlungen.", verbNote: "Verb 'befragte' am Ende." },
+                    { id: "L2-04", category: "Zeitliche Grenze", situation: "Dauer der Verfolgung.", beforeBlank: "Die Ermittler warteten geduldig,", afterBlank: "das Auto endlich hielt.", correct: "bis", options: ["bis", "seit", "sobald", "während"], explanation: "'bis' bezeichnet den Endpunkt einer Dauer.", verbNote: "Verb 'hielt' am Satzende." },
+                    { id: "L2-05", category: "Startpunkt", situation: "Veränderung ab einem Zeitpunkt.", beforeBlank: "", afterBlank: "der Verdächtige festgenommen wurde, gab es keine Überfälle mehr.", correct: "Seitdem", options: ["Seitdem", "Bis", "Bevor", "Solange"], explanation: "'Seitdem' markiert den Startpunkt von der Vergangenheit bis jetzt.", verbNote: "Passivverb 'festgenommen wurde' am Ende." },
+                    { id: "L2-06", category: "Unmittelbar danach", situation: "Sofortige Aktion nach Ereignis.", beforeBlank: "Wir informieren die Polizei,", afterBlank: "wir neue Hinweise erhalten.", correct: "sobald", options: ["sobald", "solange", "bis", "obwohl"], explanation: "'sobald' bedeutet 'sofort wenn...'.", verbNote: "Verb 'erhalten' am Satzende." },
+                    { id: "L2-07", category: "Zeitdauer", situation: "Durchgehende Zeitdauer.", beforeBlank: "", afterBlank: "der Anwalt anwesend ist, schweigt der Verdächtige.", correct: "Solange", options: ["Solange", "Sobald", "Als", "Nachdem"], explanation: "'Solange' beschreibt eine durchgehende Zeitdauer.", verbNote: "Verb 'ist' rückt ans Ende." },
+                    { id: "L2-08", category: "Eventualfall", situation: "Unsichere Bedingung.", beforeBlank: "", afterBlank: "Sie verdächtige Geräusche hören, rufen Sie Verstärkung.", correct: "Falls", options: ["Falls", "Obwohl", "Weil", "Dass"], explanation: "'Falls' leitet einen ungewissen Eventualfall ein.", verbNote: "Verb 'hören' am Satzende." },
+                    { id: "L2-09", category: "Formelle Bedingung", situation: "Rechtliche Klausel.", beforeBlank: "Die Prüfung bleibt gültig,", afterBlank: "keine Einsprüche eingereicht werden.", correct: "sofern", options: ["sofern", "obwohl", "damit", "indem"], explanation: "'sofern' ist eine formelle Bedingungsform.", verbNote: "Passivverb 'eingereicht werden' hinten." },
+                    { id: "L2-10", category: "Gegensatz", situation: "Erfolg trotz Hindernis.", beforeBlank: "Der Spürhund fand das Versteck,", afterBlank: "die Sicht im Wald sehr schlecht war.", correct: "obwohl", options: ["obwohl", "nachdem", "falls", "sobald"], explanation: "'obwohl' drückt einen Gegengrund aus.", verbNote: "Verb 'war' am Ende." }
+                ]
+            },
+            {
+                levelNum: 3,
+                title: "Level 3: Ausnahmen & Gründe",
+                subtitle: "zumal, es sei denn dass",
+                questions: [
+                    { id: "L3-01", category: "Verstärkter Grund", situation: "Zusätzlicher gewichtiger Grund.", beforeBlank: "Der Mann bleibt verdächtig,", afterBlank: "er zur Tatzeit kein Alibi hatte.", correct: "zumal", options: ["zumal", "damit", "obwohl", "sodass"], explanation: "'zumal' bedeutet 'besonders weil'.", verbNote: "Verb 'hatte' am Nebensatzende." },
+                    { id: "L3-02", category: "Ausnahme", situation: "Einzige rettende Ausnahme.", beforeBlank: "Der Verdächtige bleibt in Haft,", afterBlank: "dass seine Unschuld bewiesen wird.", correct: "es sei denn", options: ["es sei denn", "zumal", "sodass", "obwohl"], explanation: "'es sei denn, dass...' nennt die einzige Ausnahme.", verbNote: "Verb 'wird' am Ende des Nebensatzes." },
+                    { id: "L3-03", category: "Verstärkter Grund", situation: "Ablehnung mit Hauptgrund.", beforeBlank: "Der Antrag wurde abgelehnt,", afterBlank: "die Frist bereits abgelaufen war.", correct: "zumal", options: ["zumal", "es sei denn", "sodass", "damit"], explanation: "'zumal' hebt den Verstärkungsgrund hervor.", verbNote: "Hilfsverb 'war' am Satzende." },
+                    { id: "L3-04", category: "Ausnahme", situation: "Durchsuchung außer bei Kooperation.", beforeBlank: "Das Büro wird durchsucht,", afterBlank: "dass der Besitzer den Schlüssel übergibt.", correct: "es sei denn", options: ["es sei denn", "zumal", "weil", "indem"], explanation: "'es sei denn, dass...' markiert die Ausnahmebedingung.", verbNote: "Verb 'übergibt' rückt nach hinten." },
+                    { id: "L3-05", category: "Verstärkter Grund", situation: "Zusätzliche Skepsis.", beforeBlank: "Ich glaube ihm nicht,", afterBlank: "er schon einmal gelogen hat.", correct: "zumal", options: ["zumal", "obwohl", "falls", "sodass"], explanation: "'zumal' verstärkt die Skepsis.", verbNote: "Verb 'hat' am Satzende." },
+                    { id: "L3-06", category: "Ausnahme", situation: "Akte wird geschlossen.", beforeBlank: "Der Fall wird geschlossen,", afterBlank: "dass neue Beweise auftauchen.", correct: "es sei denn", options: ["es sei denn", "zumal", "damit", "da"], explanation: "'es sei denn, dass...' nennt den Ausnahmefall.", verbNote: "Verb 'auftauchen' am Ende." },
+                    { id: "L3-07", category: "Verstärkter Grund", situation: "Vorsichtiges Vorgehen.", beforeBlank: "Wir müssen vorsichtig sein,", afterBlank: "der Täter bewaffnet sein könnte.", correct: "zumal", options: ["zumal", "es sei denn", "sodass", "indem"], explanation: "'zumal' unterstreicht die Warnung.", verbNote: "Modalverb 'könnte' am Ende." },
+                    { id: "L3-08", category: "Ausnahme", situation: "Straßensperre.", beforeBlank: "Die Straße bleibt offen,", afterBlank: "dass die Beamten Gefahren entdecken.", correct: "es sei denn", options: ["es sei denn", "zumal", "weil", "obwohl"], explanation: "'es sei denn, dass...' leitet die Ausnahme ein.", verbNote: "Verb 'entdecken' am Ende." },
+                    { id: "L3-09", category: "Verstärkter Grund", situation: "Zeuge sagt ab.", beforeBlank: "Der Zeuge sagte ab,", afterBlank: "er bedroht worden war.", correct: "zumal", options: ["zumal", "es sei denn", "damit", "sodass"], explanation: "'zumal' betont die Bedrohung als Zusatzgrund.", verbNote: "Hilfsverb 'war' ganz hinten." },
+                    { id: "L3-10", category: "Ausnahme", situation: "Keine Kaution.", beforeBlank: "Entlassung ist ausgeschlossen,", afterBlank: "dass der Richter eine Ausnahme macht.", correct: "es sei denn", options: ["es sei denn", "zumal", "falls", "sofern"], explanation: "'es sei denn, dass...' nennt die Ausnahme.", verbNote: "Verb 'macht' am Ende." }
+                ]
+            },
+            {
+                levelNum: 4,
+                title: "Level 4: W-Fragen & Relativpronomen",
+                subtitle: "wer, was, wo, wann, wie, warum, welcher, der, die, das, den, dem",
+                questions: [
+                    { id: "L4-01", category: "Indirekte Frage [Person]", situation: "Personensuche.", beforeBlank: "Der Ermittler fragt sich,", afterBlank: "das Messer berührt hat.", correct: "wer", options: ["wer", "was", "wo", "welcher"], explanation: "'wer' fragt nach einer Person als Subjekt.", verbNote: "Verb 'hat' am Nebensatzende." },
+                    { id: "L4-02", category: "Indirekte Frage [Sache]", situation: "Unbekanntes Diebesgut.", beforeBlank: "Niemand wusste genau,", afterBlank: "aus dem Tresor gestohlen wurde.", correct: "was", options: ["was", "wer", "wo", "wann"], explanation: "'was' fragt nach Dingen/Gegenständen.", verbNote: "Passiv 'gestohlen wurde' am Ende." },
+                    { id: "L4-03", category: "Indirekte Frage [Ort]", situation: "Standort des Verstecks.", beforeBlank: "Die Beamtin sucht,", afterBlank: "sich die Beute befindet.", correct: "wo", options: ["wo", "woher", "wohin", "wann"], explanation: "'wo' fragt nach einem festen Ort.", verbNote: "Verb 'befindet' am Satzende." },
+                    { id: "L4-04", category: "Indirekte Frage [Zeit]", situation: "Tatzeit ermitteln.", beforeBlank: "Der Arzt untersucht,", afterBlank: "das Opfer gestorben ist.", correct: "wann", options: ["wann", "wie", "warum", "wer"], explanation: "'wann' fragt nach dem Zeitpunkt.", verbNote: "Verb 'ist' rückt ans Ende." },
+                    { id: "L4-05", category: "Relativsatz [Nom. Maskulin]", situation: "Beschreibung des Mannes.", beforeBlank: "Das ist der Mann,", afterBlank: "vor der Bank gewartet hat.", correct: "der", options: ["der", "den", "dem", "dessen"], explanation: "'der' bezieht sich auf 'Mann' (Nominativ Maskulin).", verbNote: "Verb 'hat' am Ende des Relativsatzes." },
+                    { id: "L4-06", category: "Relativsatz [Akk. Maskulin]", situation: "Gefasster Verdächtiger.", beforeBlank: "Der Verdächtige,", afterBlank: "die Polizei gesucht hatte, ist gefasst.", correct: "den", options: ["den", "der", "dem", "dessen"], explanation: "'den' ist das Akkusativ-Relativpronomen.", verbNote: "Verb 'gesucht hatte' am Ende." },
+                    { id: "L4-07", category: "Relativsatz [Dat. Feminin]", situation: "Zeugin befragen.", beforeBlank: "Die Zeugin,", afterBlank: "der Kommissar Fragen stellte, war ruhig.", correct: "der", options: ["der", "die", "denen", "welche"], explanation: "'der' ist Dativ Singular Feminin.", verbNote: "Verb 'stelle' rückt ans Ende." },
+                    { id: "L4-08", category: "Relativsatz [Akk. Neutrum]", situation: "Spurensicherung Gerät.", beforeBlank: "Das Gerät,", afterBlank: "der Techniker nutzte, funktionierte.", correct: "das", options: ["das", "dem", "den", "welchem"], explanation: "'das' bezieht sich auf 'Gerät' (Neutrum Akkusativ).", verbNote: "Verb 'nutzte' am Satzende." },
+                    { id: "L4-09", category: "Relativadverb [Ort]", situation: "Versteck im Haus.", beforeBlank: "Das Haus,", afterBlank: "die Beute lag, wurde durchsucht.", correct: "wo", options: ["wo", "woher", "wohin", "die"], explanation: "'wo' als Orts-Relativadverb.", verbNote: "Verb 'lag' am Ende." },
+                    { id: "L4-10", category: "Relativadverb [Richtung]", situation: "Fluchtrichtung.", beforeBlank: "Die Stadt,", afterBlank: "der Täter floh, war weit entfernt.", correct: "wohin", options: ["wohin", "woher", "wo", "welche"], explanation: "'wohin' drückt die Zielrichtung aus.", verbNote: "Verb 'floh' am Satzende." }
+                ]
+            },
+            {
+                levelNum: 5,
+                title: "Level 5: Meister-Ermittler",
+                subtitle: "Kompletter Mix aller A2/B1 Konnektoren",
+                questions: [
+                    { id: "L5-01", category: "Relativsatz [Dat. Plural]", situation: "Dank an Beamte.", beforeBlank: "Die Beamten,", afterBlank: "der Fall zugewiesen wurde, arbeiteten schnell.", correct: "denen", options: ["denen", "die", "der", "den"], explanation: "'denen' ist Dativ Plural.", verbNote: "Passivverb 'zugewiesen wurde' am Ende." },
+                    { id: "L5-02", category: "Relativsatz [Genitiv Maskulin]", situation: "Besitz/Zuordnung.", beforeBlank: "Der Zeuge,", afterBlank: "Aussagen sehr präzise waren, erhielt Schutz.", correct: "dessen", options: ["dessen", "der", "dem", "welcher"], explanation: "'dessen' zeigt Genitiv-Besitz an.", verbNote: "Verb 'waren' am Ende des Relativsatzes." },
+                    { id: "L5-03", category: "Indirekte Frage [Auswahl]", situation: "Schlüsselwahl.", beforeBlank: "Er testet,", afterBlank: "Schlüssel zur Tür passt.", correct: "welcher", options: ["welcher", "wer", "was", "wie"], explanation: "'welcher' fragt nach einer konkreten Auswahl.", verbNote: "Verb 'passt' am Satzende." },
+                    { id: "L5-04", category: "Indirekte Frage [Herkunft]", situation: "Signalquelle.", beforeBlank: "Die Polizei prüft,", afterBlank: "das Signal kam.", correct: "woher", options: ["woher", "wohin", "wo", "wer"], explanation: "'woher' fragt nach der Herkunft.", verbNote: "Verb 'kam' am Ende." },
+                    { id: "L5-05", category: "Ausnahme", situation: "Haft ohne Ausnahme.", beforeBlank: "Freilassung ist unmöglich,", afterBlank: "dass eine Kaution gezahlt wird.", correct: "es sei denn", options: ["es sei denn", "zumal", "sodass", "damit"], explanation: "'es sei denn, dass...' leitet die Ausnahme ein.", verbNote: "Passivverb 'gezahlt wird' am Ende." },
+                    { id: "L5-06", category: "Verstärkter Grund", situation: "Urteil begründen.", beforeBlank: "Er wurde bestraft,", afterBlank: "er Wiederholungstäter war.", correct: "zumal", options: ["zumal", "es sei denn", "obwohl", "sodass"], explanation: "'zumal' bringt den Zusatzgrund ein.", verbNote: "Verb 'war' am Ende." },
+                    { id: "L5-07", category: "Vorzeitigkeit", situation: "Ermittlungsschritte.", beforeBlank: "", afterBlank: "die Laborergebnisse vorlagen, machte die Polizei die Festnahme.", correct: "Nachdem", options: ["Nachdem", "Bevor", "Während", "Bis"], explanation: "'Nachdem' steht für die zeitlich erste Handlung.", verbNote: "Verb 'vorlagen' am Ende." },
+                    { id: "L5-08", category: "Gegensatz", situation: "Trotz Geständnis.", beforeBlank: "Der Verdächtige schweigt,", afterBlank: "er versprochen hatte zu kooperieren.", correct: "obwohl", options: ["obwohl", "weil", "sodass", "falls"], explanation: "'obwohl' zeigt den unerwarteten Gegensatz.", verbNote: "Plusquamperfekt 'versprochen hatte' am Ende." },
+                    { id: "L5-09", category: "Mittel", situation: "Erspürte Fährte.", beforeBlank: "Der Hund fand die Spur,", afterBlank: "er dem Geruch folgte.", correct: "indem", options: ["indem", "obwohl", "dass", "weil"], explanation: "'indem' nennt die konkrete Methode.", verbNote: "Verb 'folgte' am Satzende." },
+                    { id: "L5-10", category: "Folge", situation: "Stromausfall.", beforeBlank: "Die Sicherung fiel aus,", afterBlank: "alle Lichter im Gebäude erloschen.", correct: "sodass", options: ["sodass", "damit", "indem", "falls"], explanation: "'sodass' drückt die direkte Folge aus.", verbNote: "Verb 'erloschen' am Satzende." }
+                ]
+            }
+        ];
+
+        // APP STATE & STORAGE
+        let userProgress = {
+            totalXp: 0,
+            unlockedLevel: 5, // All 5 Unlocked by Default
+            levelScores: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+            levelStars: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+            completedCases: 0,
+            badges: []
+        };
+
+        let currentLevelIdx = 0;
+        let currentQuestionIdx = 0;
+        let levelCorrectCount = 0;
+        let levelXpGained = 0;
+        let currentStreak = 0;
+        let answeredCurrent = false;
+
+        function loadProgress() {
+            const saved = localStorage.getItem('konnektor_pwa_progress');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    userProgress = { ...userProgress, ...parsed, unlockedLevel: 5 };
+                } catch(e) { console.error(e); }
+            }
+            renderHub();
+        }
+
+        function saveProgress() {
+            localStorage.setItem('konnektor_pwa_progress', JSON.stringify(userProgress));
+        }
+
+        function getRankTitle(xp) {
+            if (xp >= 3500) return "Legenden-Ermittler";
+            if (xp >= 2500) return "Meister-Detektiv";
+            if (xp >= 1500) return "Hauptkommissar";
+            if (xp >= 700)  return "Detektiv";
+            if (xp >= 250)  return "Junior-Ermittler";
+            return "Praktikant";
+        }
+
+        // RENDER LEVEL MAP HUB
+        function renderHub() {
+            const rankTitle = getRankTitle(userProgress.totalXp);
+            document.getElementById('headerXpDisplay').innerText = `${userProgress.totalXp} XP`;
+            document.getElementById('rankBadgeHeader').innerText = rankTitle;
+            document.getElementById('currentRankDisplay').innerText = rankTitle;
+            document.getElementById('solvedCasesDisplay').innerText = `${userProgress.completedCases} / 50`;
+
+            let totalStars = 0;
+            Object.values(userProgress.levelStars).forEach(s => totalStars += s);
+            document.getElementById('totalStarsDisplay').innerHTML = `${totalStars} / 15 <i class="fa-solid fa-star text-[10px]"></i>`;
+
+            // Level Grid Cards
+            const levelGrid = document.getElementById('levelGrid');
+            levelGrid.innerHTML = '';
+
+            levelsData.forEach((lvl, idx) => {
+                const lvlNum = lvl.levelNum;
+                const stars = userProgress.levelStars[lvlNum] || 0;
+                const score = userProgress.levelScores[lvlNum] || 0;
+
+                let starsHtml = '';
+                for (let s = 1; s <= 3; s++) {
+                    if (s <= stars) starsHtml += `<i class="fa-solid fa-star text-amber-400 text-xs"></i>`;
+                    else starsHtml += `<i class="fa-regular fa-star text-slate-600 text-xs"></i>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = "bg-detective-900 border border-slate-800 hover:border-amber-500/70 p-3.5 rounded-2xl shadow-lg flex flex-col justify-between space-y-3";
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-typewriter text-[10px] font-bold text-amber-400 uppercase tracking-wider">AKTE LEVEL ${lvlNum}</span>
+                            <div class="flex space-x-0.5">${starsHtml}</div>
+                        </div>
+                        <h4 class="font-bold text-sm text-slate-100">${lvl.title}</h4>
+                        <p class="text-[11px] text-slate-400 line-clamp-2 mt-0.5">${lvl.subtitle}</p>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-2 border-t border-slate-800/80">
+                        <span class="text-[10px] text-slate-400 font-semibold">${score} XP</span>
+                        <button onclick="startLevel(${idx})" class="px-3 py-1.5 bg-amber-600 active:bg-amber-500 text-slate-950 text-xs font-extrabold rounded-lg touch-active">
+                            ${score > 0 ? 'Wiederholen' : 'Spielen'}
+                        </button>
+                    </div>
+                `;
+                levelGrid.appendChild(card);
+            });
+
+            // Badges
+            const badgesContainer = document.getElementById('badgesContainer');
+            badgesContainer.innerHTML = '';
+            const badgeDefs = [
+                { id: 'b1', name: 'Grundlagen', icon: 'fa-shield' },
+                { id: 'b2', name: 'Temporal', icon: 'fa-clock' },
+                { id: 'b3', name: 'Spezialist', icon: 'fa-folder-special' },
+                { id: 'b4', name: 'Verhör', icon: 'fa-comments' },
+                { id: 'b5', name: 'Meister', icon: 'fa-crown' },
+                { id: 'streak', name: 'Scharfsinn', icon: 'fa-fire' }
+            ];
+
+            badgeDefs.forEach(b => {
+                const has = userProgress.badges.includes(b.id);
+                const el = document.createElement('div');
+                el.className = `p-2 rounded-xl border flex items-center space-x-2 ${has ? 'bg-amber-500/10 border-amber-500/40 text-amber-300' : 'bg-slate-950/60 border-slate-800/80 text-slate-600'}`;
+                el.innerHTML = `
+                    <div class="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${has ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-900 text-slate-700'}">
+                        <i class="fa-solid ${b.icon} text-xs"></i>
+                    </div>
+                    <span class="text-[10px] font-bold truncate">${b.name}</span>
+                `;
+                badgesContainer.appendChild(el);
+            });
+        }
+
+        // SCREEN NAVIGATION
+        function showScreen(screenId) {
+            playSound('click');
+            triggerHaptic('light');
+
+            document.getElementById('levelMapScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('levelSummaryScreen').classList.add('hidden');
+
+            document.getElementById(screenId).classList.remove('hidden');
+            if (screenId === 'levelMapScreen') renderHub();
+        }
+
+        // START GAME LEVEL
+        function startLevel(idx) {
+            initAudio();
+            playSound('click');
+            triggerHaptic('light');
+
+            currentLevelIdx = idx;
+            currentQuestionIdx = 0;
+            levelCorrectCount = 0;
+            levelXpGained = 0;
+            currentStreak = 0;
+
+            const lvlData = levelsData[currentLevelIdx];
+            document.getElementById('gameLevelTitle').innerText = `LEVEL ${lvlData.levelNum}`;
+            document.getElementById('gameLevelSubtitle').innerText = lvlData.title;
+
+            showScreen('gameScreen');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            answeredCurrent = false;
+            const lvlData = levelsData[currentLevelIdx];
+            const currentQ = lvlData.questions[currentQuestionIdx];
+
+            document.getElementById('nextBtn').classList.add('hidden');
+            document.getElementById('feedbackBox').classList.add('hidden');
+
+            document.getElementById('caseIdText').innerText = `AKTE #${currentQ.id}`;
+            document.getElementById('categoryBadge').innerText = `[${currentQ.category}]`;
+            document.getElementById('caseSituation').innerText = currentQ.situation;
+
+            // Sentence prompt render
+            const promptBox = document.getElementById('sentencePrompt');
+            if (currentQ.beforeBlank === "") {
+                promptBox.innerHTML = `<span class="inline-block bg-amber-200 border-b-2 border-amber-900 text-amber-950 px-2.5 py-0.5 rounded font-bold uppercase tracking-wide mr-1 shadow-sm" id="blankSlot">______</span> ${currentQ.afterBlank}`;
+            } else {
+                promptBox.innerHTML = `${currentQ.beforeBlank} <span class="inline-block bg-amber-200 border-b-2 border-amber-900 text-amber-950 px-2.5 py-0.5 rounded font-bold uppercase tracking-wide mx-1 shadow-sm" id="blankSlot">______</span> ${currentQ.afterBlank}`;
+            }
+
+            // Options Shuffle
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+
+            const shuffledOptions = [...currentQ.options].sort(() => Math.random() - 0.5);
+
+            shuffledOptions.forEach((opt) => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn bg-white hover:bg-amber-50 active:bg-amber-100 border-2 border-slate-300 text-slate-900 font-bold py-3 px-4 rounded-xl shadow-sm text-center touch-active text-sm sm:text-base";
+                btn.onclick = () => selectOption(opt, btn, currentQ);
+                btn.innerText = opt;
+                optionsContainer.appendChild(btn);
+            });
+
+            updateHeader();
+        }
+
+        function updateHeader() {
+            document.getElementById('progressText').innerText = `Fall ${currentQuestionIdx + 1} / 10`;
+            document.getElementById('progressBar').style.width = `${((currentQuestionIdx + 1) / 10) * 100}%`;
+
+            const streakBadge = document.getElementById('streakBadge');
+            if (currentStreak >= 2) {
+                streakBadge.classList.remove('hidden');
+                streakBadge.classList.add('flex');
+                document.getElementById('streakCount').innerText = currentStreak;
+            } else {
+                streakBadge.classList.add('hidden');
+            }
+        }
+
+        // OPTION SELECTION
+        function selectOption(selectedOpt, btnElem, currentQ) {
+            if (answeredCurrent) return;
+            answeredCurrent = true;
+
+            const isCorrect = (selectedOpt === currentQ.correct);
+            const blankSlot = document.getElementById('blankSlot');
+            blankSlot.innerText = selectedOpt;
+
+            document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+            const feedbackBox = document.getElementById('feedbackBox');
+            const feedbackIcon = document.getElementById('feedbackIcon');
+            const feedbackTitle = document.getElementById('feedbackTitle');
+            const feedbackText = document.getElementById('feedbackText');
+            const verbNote = document.getElementById('verbRuleNote');
+
+            feedbackBox.classList.remove('hidden');
+
+            if (isCorrect) {
+                playSound('success');
+                triggerHaptic('success');
+
+                btnElem.className = "option-btn bg-emerald-600 text-white border-2 border-emerald-700 font-bold py-3 px-4 rounded-xl shadow-md text-sm sm:text-base";
+                blankSlot.className = "inline-block bg-emerald-600 text-white px-2.5 py-0.5 rounded font-bold uppercase mx-1";
+
+                feedbackBox.className = "p-3.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-950 shadow-md";
+                feedbackIcon.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i>`;
+                feedbackTitle.innerText = "Einwandfrei gelöst!";
+                feedbackText.innerText = currentQ.explanation;
+                verbNote.innerText = currentQ.verbNote;
+
+                currentStreak++;
+                levelCorrectCount++;
+
+                if (currentStreak >= 5 && !userProgress.badges.includes('streak')) {
+                    userProgress.badges.push('streak');
+                    playSound('badge');
+                }
+
+                levelXpGained += 100 + (currentStreak > 1 ? (currentStreak - 1) * 20 : 0);
+
+            } else {
+                playSound('error');
+                triggerHaptic('error');
+
+                btnElem.className = "option-btn bg-red-600 text-white border-2 border-red-700 font-bold py-3 px-4 rounded-xl shadow-md text-sm sm:text-base";
+                blankSlot.className = "inline-block bg-red-600 text-white px-2.5 py-0.5 rounded font-bold uppercase mx-1";
+
+                document.querySelectorAll('.option-btn').forEach(b => {
+                    if (b.innerText.trim() === currentQ.correct) {
+                        b.className = "option-btn bg-emerald-100 text-emerald-950 border-2 border-emerald-600 font-bold py-3 px-4 rounded-xl text-sm sm:text-base";
+                    }
+                });
+
+                feedbackBox.className = "p-3.5 rounded-xl border border-red-300 bg-red-50 text-red-950 shadow-md";
+                feedbackIcon.innerHTML = `<i class="fa-solid fa-circle-xmark text-red-600"></i>`;
+                feedbackTitle.innerText = `Falsch! Richtige Antwort: "${currentQ.correct}"`;
+                feedbackText.innerText = currentQ.explanation;
+                verbNote.innerText = currentQ.verbNote;
+
+                currentStreak = 0;
+            }
+
+            updateHeader();
+
+            const nextBtn = document.getElementById('nextBtn');
+            nextBtn.classList.remove('hidden');
+            nextBtn.innerHTML = currentQuestionIdx === 9 
+                ? `<span>Zusammenfassung</span> <i class="fa-solid fa-flag-checkered"></i>` 
+                : `<span>Nächster Fall</span> <i class="fa-solid fa-arrow-right"></i>`;
+        }
+
+        function nextQuestion() {
+            playSound('click');
+            triggerHaptic('light');
+
+            if (currentQuestionIdx < 9) {
+                currentQuestionIdx++;
+                loadQuestion();
+            } else {
+                completeLevel();
+            }
+        }
+
+        // SUMMARY & LEVEL COMPLETION
+        function completeLevel() {
+            const lvlNum = levelsData[currentLevelIdx].levelNum;
+            const accuracy = Math.round((levelCorrectCount / 10) * 100);
+
+            let stars = 1;
+            if (levelCorrectCount >= 9) stars = 3;
+            else if (levelCorrectCount >= 7) stars = 2;
+
+            userProgress.totalXp += levelXpGained;
+            if (levelXpGained > (userProgress.levelScores[lvlNum] || 0)) userProgress.levelScores[lvlNum] = levelXpGained;
+            if (stars > (userProgress.levelStars[lvlNum] || 0)) userProgress.levelStars[lvlNum] = stars;
+
+            const badgeId = `b${lvlNum}`;
+            if (levelCorrectCount >= 7 && !userProgress.badges.includes(badgeId)) {
+                userProgress.badges.push(badgeId);
+                playSound('badge');
+            } else playSound('success');
+
+            userProgress.completedCases = Math.min(50, userProgress.completedCases + levelCorrectCount);
+            saveProgress();
+
+            document.getElementById('summaryTitle').innerText = `AKTE ${lvlNum} FERTIG!`;
+            document.getElementById('summaryCorrectText').innerText = `${levelCorrectCount} / 10`;
+            document.getElementById('summaryXpText').innerText = `+${levelXpGained} XP`;
+            document.getElementById('summaryAccuracyText').innerText = `${accuracy}%`;
+
+            let starsHtml = '';
+            for (let i = 1; i <= 3; i++) {
+                starsHtml += (i <= stars) ? `<i class="fa-solid fa-star text-amber-400"></i>` : `<i class="fa-regular fa-star text-slate-600"></i>`;
+            }
+            document.getElementById('summaryStarsContainer').innerHTML = starsHtml;
+
+            showScreen('levelSummaryScreen');
+        }
+
+        function startNextLevel() {
+            if (currentLevelIdx < 4) startLevel(currentLevelIdx + 1);
+            else showScreen('levelMapScreen');
+        }
+
+        // SPICKZETTEL DRAWER CONTROLS
+        function toggleDrawer(open) {
+            playSound('click');
+            triggerHaptic('light');
+
+            const drawer = document.getElementById('spickzettelDrawer');
+            const backdrop = document.getElementById('drawerBackdrop');
+
+            if (open) {
+                backdrop.classList.remove('hidden');
+                setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+                drawer.classList.remove('translate-y-full');
+            } else {
+                backdrop.classList.add('opacity-0');
+                drawer.classList.add('translate-y-full');
+                setTimeout(() => backdrop.classList.add('hidden'), 300);
+            }
+        }
+
+        function filterSpickzettel() {
+            const query = document.getElementById('spickzettelSearch').value.toLowerCase();
+            const cards = document.querySelectorAll('.rule-card');
+
+            cards.forEach(card => {
+                const text = card.innerText.toLowerCase() + " " + card.getAttribute('data-keywords');
+                if (text.includes(query)) card.classList.remove('hidden');
+                else card.classList.add('hidden');
+            });
+        }
+
+        // INITIALIZE APP
+        window.onload = function() {
+            loadProgress();
+        };
+    </script>
+</body>
+</html>
